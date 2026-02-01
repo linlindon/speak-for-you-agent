@@ -21,6 +21,12 @@
 
 ## 已完成 ✅
 
+### 2026-02-01
+ - [x] src/store/chatStore.ts - 完成所有核心 actions
+   - addMessage: 新增訊息到指定 session（自動生成 id 和 timestamp）
+   - deleteSession: 刪除 session（智慧處理 currentSessionId）
+   - clearSession: 清空 session 的 messages（保留 session 本身）
+
 ### 2026-01-26
 - [x] 專案初始化（Vite + React + TypeScript + Tailwind）
 - [x] 安裝 Zustand, shadcn/ui
@@ -55,16 +61,30 @@
 - 自己寫 storage.ts 管理
 - 每次 state 改變時手動呼叫 saveToStorage()
 
+### chatStore Actions 設計
+
+- addMessage: 自動生成 message id 和 timestamp，同時更新 session 的 updatedAt
+- deleteSession: 刪除時智慧處理 currentSessionId
+  - 若刪除當前 session 且還有其他 sessions → 自動選擇第一個
+  - 若刪除當前 session 且沒有其他 sessions → 設為 null
+  - 若刪除非當前 session → currentSessionId 保持不變
+- clearSession: 只清空 messages 陣列，保留 session 的 id、title、createdAt
+
 ---
 
 ## 進行中 🚧
 
 ### 當前任務
-- [ ] 完成 store 的其他 actions
+- [ ] 建立 UI Components
   - addMessage
-  - deleteSession
-  - clearSession
-  - updateSessionTitle（可選）
+  - layout/AppLayout
+  - layout/Sidebar
+  - layout/Header
+  - chat/ChatContainer
+  - chat/MessageList
+  - chat/MessageItem
+  - chat/ChatInput
+  - chat/EmptyState
 
 ---
 
@@ -103,7 +123,7 @@ ai-agent/
 │   │   ├── utils.ts
 │   │   └── storage.ts ✅
 │   ├── store/
-│   │   └── chatStore.ts ✅（部分完成）
+│   │   └── chatStore.ts ✅（完成）
 │   ├── components/
 │   │   ├── layout/
 │   │   └── chat/
@@ -115,8 +135,8 @@ ai-agent/
 
 ## 下次繼續的點
 
-1. 完成 store 的剩餘 actions
-2. 開始建立 UI components
+1. ~~完成 store 的剩餘 actions~~
+2. 開始建立 UI components（從基礎 layout 開始）
 3. 用假資料測試整個 flow
 
 ---
