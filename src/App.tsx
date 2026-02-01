@@ -1,24 +1,10 @@
-import { useState } from 'react'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { ChatContainer } from '@/components/chat/ChatContainer'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+export default function App() {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold text-blue-600 mb-4">
-          Vite + React + TypeScript + Tailwind v4
-        </h1>
-        <button 
-          onClick={() => setCount(count + 1)}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
-        >
-          count is {count}
-        </button>
-      </div>
-    </div>
-
+    <AppLayout>
+      <ChatContainer />
+    </AppLayout>
   )
 }
-
-export default App

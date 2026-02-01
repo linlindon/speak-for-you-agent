@@ -9,7 +9,9 @@ interface ChatStore {
   // Actions
   createSession: () => void;
   selectSession: (id: string) => void;
-  // ... 其他的之後再加
+  addMessage: (sessionId: string, content: string, role: 'user' | 'assistant') => void;
+  deleteSession: (id: string) => void;
+  clearSession: (id: string) => void;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => {
@@ -111,7 +113,7 @@ export const useChatStore = create<ChatStore>((set, get) => {
 
     clearSession: (id: string) => {
       set((state) => {
-        const updatedSessions = state.sessions.filter((session) => {
+        const updatedSessions = state.sessions.map((session) => {
           if (session.id === id) {
             return {
               ...session,
@@ -119,7 +121,7 @@ export const useChatStore = create<ChatStore>((set, get) => {
               updatedAt: new Date(),
             };
           }
-          return session
+          return session;
         });
 
         const newState = {
