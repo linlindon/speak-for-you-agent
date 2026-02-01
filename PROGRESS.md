@@ -31,6 +31,17 @@
    - deleteSession: 刪除 session（智慧處理 currentSessionId）
    - clearSession: 清空 session 的 messages（保留 session 本身）
 
+- [x] src/components/layout/ - Layout 組件（暖色調設計）
+   - AppLayout: 整體布局 + RWD + sidebar 狀態管理
+   - Sidebar: Session 列表 + New Chat 按鈕
+
+- [x] src/components/chat/ - Chat UI 組件（新增）
+   - ChatContainer: 聊天區域容器，整合所有聊天組件
+   - EmptyState: 空狀態顯示（兩種模式）
+   - MessageList: 訊息列表 + 自動滾動
+   - MessageItem: 單一訊息顯示（user/assistant/system）
+   - ChatInput: 訊息輸入框 + Enter 發送 + 自動調整高度
+
 ### 2026-01-26
 - [x] 專案初始化（Vite + React + TypeScript + Tailwind）
 - [x] 安裝 Zustand, shadcn/ui
@@ -109,35 +120,49 @@
   - 主要文字: #333333 深灰
   - 次要文字: #666666 中灰
 
+### Chat UI 設計細節
+- MessageItem:
+
+  - User 訊息右對齊，珊瑚橘背景，右上角切角
+  - Assistant 訊息左對齊，白色背景，左上角切角
+  - 智慧時間戳記格式化（Just now / 15m ago / 3h ago / Jan 15）
+
+
+- ChatInput:
+
+  - 不支援語音輸入（已移除）
+  - Enter 發送，Shift+Enter 換行
+  - 自動調整高度（最高 150px）
+  - 發送按鈕 icon 向右旋轉（-rotate-90）
+
+
+- MessageList: 新訊息到達時自動滾動到底部（smooth 動畫）
+
+
 ---
 
 ## 進行中 🚧
 
 ### 當前任務
-- [ ] 建立 UI Components
-  - chat/ChatContainer
-  - chat/MessageList
-  - chat/MessageItem
-  - chat/ChatInput
-  - chat/EmptyState
+- [ ] 測試 UI 功能（修改：移除已完成的 Chat UI Components）
+  - 用假資料測試所有組件
+  - 測試 RWD 在不同尺寸的表現
+  - 修復可能的 bug
+
 
 ---
 
 ## 待辦 📋
 
 ### Phase 1 剩餘工作
-- [ ] 建立 UI Components
-  - layout/AppLayout
-  - layout/Sidebar
-  - layout/Header
-  - chat/ChatContainer
-  - chat/MessageList
-  - chat/MessageItem
-  - chat/ChatInput
-  - chat/EmptyState
-- [ ] 串接假資料測試 UI
-- [ ] 建立 API route（Next.js API 或 Vite proxy）
-- [ ] 串接真實 LLM API（OpenAI 或 Claude）
+- [ ] 測試與優化（修改：UI Components 已完成）
+  - 用假資料測試整個 flow
+  - 測試 RWD 響應式設計
+  - 優化使用者體驗細節
+- [ ] API 整合
+  - 建立 API route（Vite proxy 或後端）
+  - 串接真實 LLM API（OpenAI 或 Claude）
+  - 處理 loading 狀態和錯誤處理
 
 ### Phase 2（未來）
 - Agent loop 實作
@@ -164,6 +189,11 @@ ai-agent/
 |   |   |   ├── AppLayout.tsx ✅
 │   |   |   └── Sidebar.tsx ✅
 │   │   └── chat/
+│   │       ├── ChatContainer.tsx ✅
+│   │       ├── EmptyState.tsx ✅
+│   │       ├── MessageList.tsx ✅
+│   │       ├── MessageItem.tsx ✅
+│   │       └── ChatInput.tsx ✅
 │   ├── App.tsx
 │   └── main.tsx
 ```
@@ -173,8 +203,10 @@ ai-agent/
 ## 下次繼續的點
 
 1. ~~完成 store 的剩餘 actions~~
-2. 開始建立 UI components（從基礎 layout 開始）
-3. 用假資料測試整個 flow
+2. ~~開始建立 UI components（從基礎 layout 開始）~~
+3. 建立 App.tsx 整合所有組件
+4. 用假資料測試整個 flow
+5. 串接真實 API
 
 ---
 
