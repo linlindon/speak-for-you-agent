@@ -45,7 +45,15 @@ export function ChatInput() {
     // Auto-resize textarea
     const textarea = e.target
     textarea.style.height = 'auto'
-    textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px'
+    const newHeight = Math.min(textarea.scrollHeight, 150)
+    textarea.style.height = newHeight + 'px'
+    
+    // 只在內容超過最大高度時顯示滾動條
+    if (textarea.scrollHeight > 150) {
+      textarea.style.overflowY = 'auto'
+    } else {
+      textarea.style.overflowY = 'hidden'
+    }
   }
 
   return (
@@ -62,7 +70,7 @@ export function ChatInput() {
           className="w-full px-4 py-3 pr-12 rounded-2xl bg-white border border-gray-200
                    focus:outline-none focus:ring-2 focus:ring-[#FFAB76]/50 focus:border-[#FFAB76]
                    resize-none text-gray-800 placeholder-gray-400
-                   transition-all"
+                   transition-all overflow-y-hidden"
           style={{ minHeight: '48px', maxHeight: '150px' }}
         />
 
