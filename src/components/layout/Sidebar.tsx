@@ -19,7 +19,11 @@ export function Sidebar({ onClose }: SidebarProps) {
   };
 
   const handleCreateSession = () => {
-    createSession();
+    const result = createSession();
+    // 如果返回 null，表示已有空對話，切換過去並提示
+    if (result === null) {
+      alert('You already have an empty chat. Start typing there!');
+    }
     onClose?.();
   };
 

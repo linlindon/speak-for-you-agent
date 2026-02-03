@@ -25,6 +25,26 @@ export const useChatStore = create<ChatStore>((set, get) => {
 
     // Actions
     createSession: () => {
+      const state = get();
+
+      // 檢查是否已經有空對話（沒有任何訊息）
+      const emptySession = state.sessions.find(
+        (session) => session.messages.length === 0
+      );
+
+       // 如果已經有空對話存在，就不建立新對話
+      if (emptySession) {
+        set((state) => {
+          const newState = {
+            ...state,
+            currentSessionId: emptySession.id,
+          };
+          saveToStorage(newState);
+          return newState;
+        });
+        return null;
+      }
+
       const newSession: Session = {
         id: crypto.randomUUID(),
         title: "New Chat",
