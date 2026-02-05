@@ -12,6 +12,7 @@ interface ChatStore {
   addMessage: (sessionId: string, content: string, role: 'user' | 'assistant') => void;
   deleteSession: (id: string) => void;
   clearSession: (id: string) => void;
+  updateSessionTitle: (id: string, newTitle: string) => void;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => {
@@ -153,5 +154,26 @@ export const useChatStore = create<ChatStore>((set, get) => {
         return newState
       });
     },
+
+    updateSessionTitle: (id: string, newTitle: string) => {
+      set((state) => {
+        const updatedSessions = state.sessions.map((session) => {
+          if(session.id === id) {
+            return {
+              ...session,
+              title: newTitle.trim() || "New CHat",
+              updatedAt: new Date(),
+            }
+          }
+          return session;
+        }); 
+        const newState = {
+          ...state,
+          sessions: updatedSessions,
+        }
+        saveToStorage(newState);
+        return newState;
+      })
+    }
   };
 });

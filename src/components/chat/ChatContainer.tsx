@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { useChatStore } from "@/store/chatStore";
 import { EmptyState } from "./EmptyState";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
 
 export function ChatContainer() {
-  const { sessions, currentSessionId, clearSession } = useChatStore();
+  const { sessions, currentSessionId, clearSession, updateSessionTitle } =
+    useChatStore();
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
 
   // 找到當前選中的 session
   const currentSession = sessions.find((s) => s.id === currentSessionId);
@@ -14,16 +18,87 @@ export function ChatContainer() {
     return <EmptyState />;
   }
 
+  // 開始編輯標題
+  const handleStartEdit = () => {
+    setEditedTitle(currentSession.title);
+    setIsEditingTitle(true);
+  };
+
+  // 儲存標題
+  const handleSaveTitle = () => {
+    if (editedTitle.trim()) {
+      updateSessionTitle(currentSession.id, editedTitle);
+    }
+    setIsEditingTitle(false);
+  };
+
+  // 取消編輯
+  const handleCancelEdit = () => {
+    setIsEditingTitle(false);
+    setEditedTitle("");
+  };
+
+  // Enter 儲存，Esc 取消
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSaveTitle();
+    } else if (e.key === "Escape") {
+      handleCancelEdit();
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header: Session Title */}
       <div className="flex-shrink-0 px-4 md:px-6 py-4 border-b border-[#E6A070]/20 bg-white">
-        <h2 className="text-lg font-semibold text-gray-800 truncate">
-          {currentSession.title}
-        </h2>
-        <p className="text-xs text-gray-500 mt-0.5">
-          {currentSession.messages.length} messages
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            {isEditingTitle ? (
+              // 編輯模式
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onBlur={handleSaveTitle}
+                  autoFocus
+                  className="flex-1 text-lg font-semibold text-gray-800 px-2 py-1 
+                           border-2 border-[#FFAB76] rounded-lg focus:outline-none"
+                  placeholder="Enter chat title..."
+                />
+              </div>
+            ) : (
+              // 顯示模式
+              <div>
+                <h2
+                  onClick={handleStartEdit}
+                  className="text-lg font-semibold text-gray-800 truncate cursor-pointer 
+                           hover:text-[#E6A070] transition-colors group inline-flex items-center gap-2"
+                  title="Click to edit title"
+                >
+                  {currentSession.title}
+                  <svg
+                    className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                    />
+                  </svg>
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {currentSession.messages.length} messages
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Clear Messages Button - 只在有訊息時顯示 */}
