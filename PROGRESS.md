@@ -25,6 +25,16 @@
 
 ## 已完成 ✅
 
+### 2026-02-05
+
+- [x] 整合測試與功能增強
+  - main.tsx: 加入開發模式自動載入測試資料（僅在 localStorage 為空時）
+  - chatStore: 新增 updateSessionTitle action（修改對話標題）
+  - chatStore: 優化 createSession（檢查是否已有空對話，避免重複建立）
+  - ChatContainer: 加入「Clear Messages」按鈕（清空對話訊息）
+  - ChatContainer: 實作標題內聯編輯功能（點擊標題即可編輯）
+  - ChatInput: 修正 textarea 滾動條問題（動態控制 overflow）
+
 ### 2026-02-01
  - [x] src/store/chatStore.ts - 完成所有核心 actions
    - addMessage: 新增訊息到指定 session（自動生成 id 和 timestamp）
@@ -121,14 +131,22 @@
   - 次要文字: #666666 中灰
 
 ### Chat UI 設計細節
-- MessageItem:
+- **ChatContainer Header**:
+  - 點擊標題可內聯編輯（inline editing）
+  - 編輯模式：Enter 儲存 / Esc 取消 / blur 自動儲存
+  - 使用兩個 state 管理編輯：`isEditingTitle`（UI 模式）+ `editedTitle`（暫存內容）
+  - Hover 顯示編輯圖示提示
+  - 「Clear Messages」按鈕：只在有訊息時顯示，需確認後清空
+
+
+- **MessageItem**:
 
   - User 訊息右對齊，珊瑚橘背景，右上角切角
   - Assistant 訊息左對齊，白色背景，左上角切角
   - 智慧時間戳記格式化（Just now / 15m ago / 3h ago / Jan 15）
 
 
-- ChatInput:
+- **ChatInput**:
 
   - 不支援語音輸入（已移除）
   - Enter 發送，Shift+Enter 換行
@@ -155,14 +173,16 @@
 ## 待辦 📋
 
 ### Phase 1 剩餘工作
-- [ ] 測試與優化（修改：UI Components 已完成）
-  - 用假資料測試整個 flow
-  - 測試 RWD 響應式設計
+- [ ] 完成整合測試後的優化
+  - 修復測試中發現的 bug
   - 優化使用者體驗細節
-- [ ] API 整合
+  - 效能優化（如有需要）
+  
+- [ ] API 整合（測試完成後）
   - 建立 API route（Vite proxy 或後端）
   - 串接真實 LLM API（OpenAI 或 Claude）
   - 處理 loading 狀態和錯誤處理
+  - 實作打字機效果（streaming）
 
 ### Phase 2（未來）
 - Agent loop 實作
@@ -212,6 +232,22 @@ ai-agent/
 
 ## 常見問題 / 注意事項
 
+### 資料管理
 - Date 物件在 localStorage 會變成 string，記得轉換
 - currentSessionId 是指標概念，不是 filter
 - 每個 action 都要記得呼叫 saveToStorage()
+
+### React 模式
+- **受控組件 (Controlled Component)**：標題編輯使用兩個 state
+  - `isEditingTitle`：控制顯示/編輯模式（UI 切換）
+  - `editedTitle`：暫存編輯內容（可取消，不污染原始資料）
+- **動態樣式控制**：ChatInput 根據內容高度動態切換 overflow 樣式
+
+### 使用者體驗
+- 避免重複空對話：createSession 會檢查並切換到已有的空對話
+- 標題編輯快捷鍵：Enter 儲存 / Esc 取消 / blur 自動儲存
+- 危險操作需確認：刪除對話、清空訊息都有 confirm 提示
+
+### 測試資料
+- 開發模式下會自動載入 mockData（僅在 localStorage 為空時）
+- 可在 Console 執行 `localStorage.clear()` 重置所有資料
