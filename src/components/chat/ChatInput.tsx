@@ -12,10 +12,10 @@ export function ChatInput() {
 
     const messageToSend = input.trim();
 
-    await sendMessage(currentSessionId, messageToSend);
-
     // Clear input immediately
     setInput("");
+
+    await sendMessage(currentSessionId, messageToSend);
 
     // Reset textarea height
     if (textareaRef.current) {

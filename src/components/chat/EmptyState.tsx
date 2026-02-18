@@ -1,5 +1,5 @@
 interface EmptyStateProps {
-  showTitle?: boolean
+  showTitle?: boolean;
 }
 
 export function EmptyState({ showTitle = true }: EmptyStateProps) {
@@ -17,8 +17,8 @@ export function EmptyState({ showTitle = true }: EmptyStateProps) {
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              strokeWidth={2}
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
             />
           </svg>
         </div>
@@ -33,20 +33,18 @@ export function EmptyState({ showTitle = true }: EmptyStateProps) {
         {/* Description */}
         <p className="text-gray-600 mb-6">
           {showTitle
-            ? 'Your intelligent conversation partner. Start a new chat to begin.'
-            : 'No messages yet. Start the conversation!'}
+            ? "Your intelligent conversation partner. Start a new chat to begin."
+            : "No messages yet. Start the conversation!"}
         </p>
 
         {/* Suggestions */}
         <div className="space-y-2 text-left">
-          <p className="text-sm font-medium text-gray-700 mb-3">
-            Try asking:
-          </p>
+          <p className="text-sm font-medium text-gray-700 mb-3">Try asking:</p>
           <div className="space-y-2">
             {[
-              'What can you help me with?',
-              'Tell me about yourself',
-              'How does this work?',
+              "What can you help me with?",
+              "Tell me about yourself",
+              "How does this work?",
             ].map((suggestion, index) => (
               <button
                 key={index}
@@ -60,5 +58,5 @@ export function EmptyState({ showTitle = true }: EmptyStateProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
