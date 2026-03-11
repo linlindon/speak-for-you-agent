@@ -1,26 +1,37 @@
-import { Message } from '@/types/chat'
+import { Message } from "@/types/chat";
+import { useChatStore } from "@/store/chatStore";
 
 interface MessageItemProps {
-  message: Message
+  message: Message;
 }
 
 export function MessageItem({ message }: MessageItemProps) {
-  const isUser = message.role === 'user'
-  const isAssistant = message.role === 'assistant'
+  const { isLoading, sessions, currentSessionId } = useChatStore();
+  const isUser = message.role === "user";
+  const isAssistant = message.role === "assistant";
+  const currentSession = sessions.find((s) => s.id === currentSessionId);
+  const lastMessage =
+    currentSession?.messages[currentSession.messages.length - 1];
+
+  const showAssistantLoading =
+    isLoading &&
+    isAssistant &&
+    message.id === lastMessage?.id &&
+    message.content.trim().length === 0;
 
   // System messages (if any) - centered gray text
-  if (message.role === 'system') {
+  if (message.role === "system") {
     return (
       <div className="flex justify-center my-4">
         <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
           {message.content}
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
       {/* Avatar - only for assistant */}
       {isAssistant && (
         <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#E6A070] flex items-center justify-center">
@@ -48,21 +59,35 @@ export function MessageItem({ message }: MessageItemProps) {
             px-4 py-3 rounded-2xl
             ${
               isUser
-                ? 'bg-[#FFAB76] text-white rounded-tr-sm'
-                : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100'
+                ? "bg-[#FFAB76] text-white rounded-tr-sm"
+                : "bg-white text-gray-800 rounded-tl-sm border border-gray-100"
             }
           `}
         >
-          <p className="text-sm md:text-base whitespace-pre-wrap break-words">
-            {message.content}
-          </p>
+          {showAssistantLoading ? (
+            <div className="flex items-center gap-1 h-5">
+              <span className="w-2 h-2 rounded-full bg-[#E6A070] animate-bounce" />
+              <span
+                className="w-2 h-2 rounded-full bg-[#E6A070] animate-bounce"
+                style={{ animationDelay: "0.15s" }}
+              />
+              <span
+                className="w-2 h-2 rounded-full bg-[#E6A070] animate-bounce"
+                style={{ animationDelay: "0.3s" }}
+              />
+            </div>
+          ) : (
+            <p className="text-sm md:text-base whitespace-pre-wrap break-words">
+              {message.content}
+            </p>
+          )}
         </div>
 
         {/* Timestamp */}
         <div
           className={`
             text-xs text-gray-400 mt-1 px-1
-            ${isUser ? 'text-right' : 'text-left'}
+            ${isUser ? "text-right" : "text-left"}
           `}
         >
           {formatTime(message.timestamp)}
@@ -88,26 +113,26 @@ export function MessageItem({ message }: MessageItemProps) {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // Helper function to format timestamp
 function formatTime(date: Date): string {
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
 
-  if (minutes < 1) return 'Just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days < 7) return `${days}d ago`
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
 
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
