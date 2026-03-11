@@ -6,7 +6,8 @@
 ### MVP 階段規劃
 - **Phase 1**: 基本對話 UI + Session 管理（當前階段）
 - **Phase 2**: Agent loop + Tools（天氣、計算機等）
-- **Phase 3**: 視覺化 Agent 思考過程
+- **Phase 3**: 使用 SSE + 前端打字機效果
+- **Phase 4**: 視覺化 Agent 思考過程
 
 ---
 
@@ -35,6 +36,16 @@
 ---
 
 ## 已完成 ✅
+
+### 2026-03-11
+- [x] 串流回應與逐步顯示（SSE + 打字機效果）
+  - 後端 `POST /api/chat` 改為 `text/event-stream` 回應格式（SSE）
+  - 後端改用 `chat.sendMessageStream(...)`，將 Gemini 回應逐 chunk 透過 `event: delta` 推送
+  - 保留 agent loop 與 function calling，工具執行後可繼續下一輪串流
+  - 前端 `chatStore.sendMessage` 改為 `response.body.getReader()` 解析 SSE（`delta/error/done`）
+  - 前端新增 assistant placeholder 訊息，回應生成時即時更新同一則訊息內容
+  - 前端加入打字機效果（字元 queue + interval）讓內容逐字顯示
+  - `MessageItem` 新增 assistant 氣泡 loading 動畫（三個主色跳動圓點）
 
 ### 2026-02-17
 - [x] Phase 2B - Function Calling（天氣查詢工具）完成
@@ -148,18 +159,19 @@
   - 自動 trim 空白，若為空則使用 "New Chat" 作為預設值
   - 同時更新 session 的 updatedAt
 
-- **sendMessage**: 發送訊息並呼叫後端 API（核心功能）
+- **sendMessage**: 發送訊息並以 SSE 串流接收 AI 回應（核心功能）
   - 加入使用者訊息到 session
   - 設定 isLoading 為 true
-  - 準備訊息歷史並呼叫後端 `/api/chat`
-  - 處理成功回應：加入 AI 訊息
-  - 處理錯誤：解析後端錯誤訊息並顯示
-  - 無論成功或失敗，確保 isLoading 設為 false
+  - 建立 assistant placeholder 訊息（先顯示頭像與對話框）
+  - 呼叫後端 `/api/chat` 並使用 `ReadableStream` 逐段解析 SSE 事件
+  - `delta` 事件：即時更新同一則 assistant 訊息內容
+  - `error` 事件：顯示友善錯誤訊息
+  - `done` / 串流結束：收尾並將 isLoading 設為 false
 
 ### 後端架構設計
 
 - **前後端分離**: 獨立的 Express 後端（ai-agent-backend）
-- **API 端點**: `POST /api/chat` - 處理對話請求
+- **API 端點**: `POST /api/chat` - 以 SSE（`text/event-stream`）串流回傳對話內容
 - **訊息格式轉換**: 前端格式 → Gemini API 格式
   - 前端: `{ role: 'user' | 'assistant', content: string }`
   - Gemini: `{ role: 'user' | 'model', parts: [{ text: string }] }`
@@ -236,11 +248,7 @@
 ## 進行中 🚧
 
 ### 當前任務
-- [ ] Phase 2C - 部署到 Fly.io
-  - 學習 Docker 基礎概念
-  - 建立後端 Dockerfile
-  - 本地測試 Docker 建置
-  - 部署到 Fly.io
+- [ ] 無
 
 
 ---
@@ -268,24 +276,27 @@
 ### Phase 2C：部署（選配）
 部署計畫：Fly.io 前後端分離部署
 
-- [ ] 後端部署準備
+- [x] 後端部署準備
   - 建立 Dockerfile
   - 設定 fly.toml 配置檔
   - 環境變數設定（GEMINI_API_KEY）
   - 測試 Docker 本地建置
 
-- [ ] 前端部署準備
+- [x] 前端部署準備
   - 更新 API 端點為生產環境 URL
   - 建置生產版本
   - 設定環境變數
 
-- [ ] Fly.io 部署
+- [x] Fly.io 部署
   - 部署後端到 Fly.io
   - 部署前端到 Fly.io（或 Vercel/Netlify）
   - 設定 CORS 允許生產環境網址
   - 測試生產環境功能
 
-### Phase 3（未來）
+### Phase 3:打字機效果呈現 assistant 回應訊息
+
+
+### Phase 4（未來）
 - 視覺化 Agent steps
 
 ---
@@ -349,7 +360,7 @@ ai-agent-backend/
 5. ~~完成整合測試，確保所有功能正常運作~~ ✅
 6. ~~串接真實 API（Google Gemini）~~ ✅（Phase 2A 完成）
 7. ~~實作 Function Calling（天氣工具、Agent Loop）~~ ✅（Phase 2B 完成）
-8. 部署到 Fly.io
+8. ~~部署到 Fly.io~~
 
 ---
 
@@ -369,8 +380,9 @@ ai-agent-backend/
 
 ### API 整合
 - **關注點分離**：API 邏輯在 chatStore，Component 只管 UI
+- **串流傳輸**：後端使用 SSE 回傳 `delta/error/done` 事件，前端需逐段解析
 - **錯誤處理**：後端分類錯誤 → 前端解析並顯示友善訊息
-- **Loading 狀態**：全域 isLoading 防止重複請求
+- **Loading 狀態**：全域 isLoading 防止重複請求，並搭配對話框內 loading 動畫
 - **API Key 安全**：絕對不要把 API Key 寫在前端，必須在後端處理
 
 ### Agent Loop 設計
