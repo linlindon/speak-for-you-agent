@@ -15,6 +15,11 @@ interface ChatStore {
     content: string,
     role: "user" | "assistant",
   ) => void;
+  updateMessageContent: (
+    sessionId: string,
+    messageId: string,
+    content: string,
+  ) => void;
   deleteSession: (id: string) => void;
   clearSession: (id: string) => void;
   updateSessionTitle: (id: string, newTitle: string) => void;
@@ -117,6 +122,35 @@ export const useChatStore = create<ChatStore>((set, get) => {
       });
     },
 
+    // 專門給串流 chunk 用：持續改同一則訊息內容
+    updateMessageContent: (
+      sessionId: string,
+      messageId: string,
+      content: string,
+    ) => {
+      set((state) => {
+        const updatedSessions = state.sessions.map((session) => {
+          if (session.id !== sessionId) return session;
+
+          return {
+            ...session,
+            messages: session.messages.map((msg) =>
+              msg.id === messageId ? { ...msg, content } : msg,
+            ),
+            updatedAt: new Date(),
+          };
+        });
+
+        const newState = {
+          ...state,
+          sessions: updatedSessions,
+        };
+
+        saveToStorage(newState);
+        return newState;
+      });
+    },
+
     deleteSession: (id: string) => {
       set((state) => {
         // 要留下來的對話紀錄 sessions
@@ -185,54 +219,174 @@ export const useChatStore = create<ChatStore>((set, get) => {
     },
 
     sendMessage: async (sessionId: string, content: string) => {
-      // 1. 新增用戶訊息
+      // 1) 先加 user 訊息
       get().addMessage(sessionId, content, "user");
-      // 2. 設定 loading
       set({ isLoading: true });
 
+      // 2) 先準備要送後端的 messages（不需要包含下面的 assistant 空訊息）
+      const updatedSession = get().sessions.find(
+        (session) => session.id === sessionId,
+      );
+      if (!updatedSession) {
+        set({ isLoading: false });
+        return;
+      }
+
+      const messages = updatedSession.messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      // 3) 再建立 assistant 空訊息（給串流逐步更新）
+      const assistantMessageId = crypto.randomUUID();
+      set((state) => {
+        const assistantMessage: Message = {
+          id: assistantMessageId,
+          role: "assistant",
+          content: "",
+          timestamp: new Date(),
+        };
+
+        const updatedSessions = state.sessions.map((session) => {
+          if (session.id !== sessionId) return session;
+          return {
+            ...session,
+            messages: [...session.messages, assistantMessage],
+            updatedAt: new Date(),
+          };
+        });
+
+        const newState = {
+          ...state,
+          sessions: updatedSessions,
+        };
+
+        saveToStorage(newState);
+        return newState;
+      });
+
+      // 打字機狀態。
+      // assistantText 是目前已顯示的累積文字，charQueue 是從 stream 收到但還沒顯示的字
+      let assistantText = "";
+      const charQueue: string[] = [];
+      let streamDone = false;
+
+      // 每 25ms 顯示一個字
+      const typeTimer = setInterval(() => {
+        const ch = charQueue.shift();
+        if (ch) {
+          assistantText += ch;
+          get().updateMessageContent(
+            sessionId,
+            assistantMessageId,
+            assistantText,
+          );
+        }
+
+        // 串流結束且佇列清空，停止定時器
+        if (streamDone && charQueue.length === 0) {
+          clearInterval(typeTimer);
+        }
+      }, 25);
+
       try {
-        // 準備要傳給後端的訊息(歷史＋最新的)
-        const updatedSession = get().sessions.find(
-          (session) => session.id === sessionId,
-        );
-        if (!updatedSession) return;
-
-        const messages = updatedSession.messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }));
-
-        // 3. 呼叫後端 API
         const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
         const response = await fetch(`${API_URL}/api/chat`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "text/event-stream",
           },
           body: JSON.stringify({ messages }),
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.userMessage || errorData.message || "API request failed",
-          );
+          const errText = await response.text();
+          throw new Error(errText || "API request failed");
         }
 
-        const data = await response.json();
+        if (!response.body) {
+          throw new Error("No response stream from server");
+        }
 
-        get().addMessage(sessionId, data.reply, "assistant");
+        // getReader 從資料水管拿到讀取器
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        // 第一層 while: 一直讀 stream 直到 server 關閉
+        while (true) {
+          // reader.read() 每次呼叫就從水管讀一段資料出來
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          // 把原始 bytes decode 成字串。stream true 是為了避免同一個字的 bytes 被切成兩段傳
+          buffer += decoder.decode(value, { stream: true });
+
+          // 一次 value 可能含多個事件，事件之間會用 \n\n 隔開，要分批處理
+          while (buffer.includes("\n\n")) {
+            const boundary = buffer.indexOf("\n\n");
+            const rawEvent = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 2);
+
+            let eventType = "message";
+            let dataStr = "";
+
+            for (const line of rawEvent.split("\n")) {
+              if (line.startsWith("event:")) {
+                eventType = line.slice(6).trim();
+              } else if (line.startsWith("data:")) {
+                dataStr += line.slice(5).trim();
+              }
+            }
+
+            if (!dataStr) continue;
+
+            let payload: any;
+            try {
+              payload = JSON.parse(dataStr);
+            } catch {
+              continue;
+            }
+
+            if (eventType === "delta") {
+              const text = (payload as { text?: string })?.text || "";
+              if (text) {
+                // 不直接整段塞進 UI，而是入字元佇列
+                charQueue.push(...Array.from(text));
+              }
+            }
+
+            if (eventType === "error") {
+              throw new Error(payload?.message || "Streaming error");
+            }
+
+            if (eventType === "done") {
+              streamDone = true;
+            }
+          }
+        }
+
+        // stream close 也視為完成
+        streamDone = true;
+
+        // 等待打字機把剩餘字元顯示完
+        while (charQueue.length > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
       } catch (error) {
-        console.error("Failed to get AI response:", error);
+        clearInterval(typeTimer);
+        console.error("Failed to get AI streaming response:", error);
 
         const errorMessage =
           error instanceof Error
             ? error.message
             : "Sorry, I encountered an error. Please try again.";
 
-        // 5. 錯誤處理：加入錯誤訊息
-        get().addMessage(sessionId, errorMessage, "assistant");
+        get().updateMessageContent(sessionId, assistantMessageId, errorMessage);
       } finally {
+        // 保險清理（重複 clearInterval 沒關係）
+        clearInterval(typeTimer);
         set({ isLoading: false });
       }
     },
